@@ -88,13 +88,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 for (routeNo in routeNos)
                     if (!routeIds.containsKey(routeNo))
                         applyRoute(routeNo)
-            stations.distinct()
-            stations.sort()
 
             for (x in routeIds) {
                 applyStationRoute(x.value)
                 applyRealtimeRoute(x.key, x.value)
             }
+
+            stations = ArrayList(stations.distinct())
+            stations.sort()
 
             Log.d("map", routeIds.map { "${it.key}: ${it.value}" }.joinToString(", "))
 
@@ -204,6 +205,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+        
 
         @Composable
         fun MainApp() {
