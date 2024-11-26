@@ -9,3 +9,13 @@ class GPSData {
         gpslong = long2
     }
 }
+
+class StationClass {
+    var name: String = ""
+    lateinit var latLng: GPSData
+
+    constructor(name1: String, lat: GPSData) {
+        name = name1
+        latLng = lat
+    }
+}
