@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.material)
     implementation("androidx.compose.foundation:foundation:1.5.0")
     implementation("androidx.navigation:navigation-compose:2.7.1")
+    implementation(libs.androidx.ui.test.junit4.android)
     testImplementation(libs.junit)
     testImplementation("junit:junit:4.13.2")
     implementation ("androidx.compose.material:material:1.5.3")

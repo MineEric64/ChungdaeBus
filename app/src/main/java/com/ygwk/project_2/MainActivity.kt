@@ -62,9 +62,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.Shapes
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
+import android.location.Location
+import android.widget.Toast
 
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
@@ -116,13 +120,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         var googleMap: GoogleMap? = null
         //lateinit var mapView: MapView
         lateinit var mapStyleJson: String
+        lateinit var fusedLocationClient: FusedLocationProviderClient
+        lateinit var current: Context
     }
 
     lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        current = this
         supportActionBar?.hide()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -185,8 +193,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     addMarkers()
                 }
 
-                delay(5000)
+                delay(10000)
             }
+        }
+        lifecycleScope.launch {
+            while (true) {
+                val latLng = getMyLocation()
+
+                if (latLng != null) {
+                    applyStarRoute()
+                }
+
+                delay(60000)
+            }
+        }
         }
     }
 
@@ -219,6 +239,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 //        mapView.onDestroy()
 //        super.onDestroy()
 //    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1000) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(
+                        this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    googleMap?.isMyLocationEnabled = true
+                }
+            }
+        }
+    }
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
@@ -257,9 +300,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             Log.e("MapStyle", "Can't find style. Error: \${e.message}")
         }
 
-        // Call addMarkers if data is already available
-        if (gpsDatas.isNotEmpty()) {
-            addMarkers()
+        for (station in stations) {
+            val latlng = LatLng(station.latLng.gpslati, station.latLng.gpslong)
+
+            googleMap?.addMarker(
+                MarkerOptions()
+                    .position(latlng)
+                    .title(station.name)
+                    .snippet("정류장")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
         }
     }
 
@@ -309,7 +358,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 StationScreen(navController)
             }
             composable("notifications") {
-                SimpleScreen(title = "공지사항", isSettings = false)
+                SimpleScreen(title = "공지사항", isSettings = false, "1.1 업데이트 안내: 지도 맵 구현\n2.0 업데이트! (최신버전): 버스 실시간 위치 추적 및 UI 개선")
             }
             composable("settings") {
                 SimpleScreen(title = "설정", isSettings = true)
@@ -454,7 +503,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     itemsIndexed(stations) { index, station ->
                         MenuItem(station.name, R.drawable.ic_station) {
                             navController.navigate("map_screen")
-                            moveToStation(applicationContext, station.name)
+                            runOnUiThread {
+                                moveToStation(applicationContext, station.name)
+                            }
                         }
                     }
                 }
@@ -479,8 +530,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 LazyColumn(modifier = Modifier.padding(16.dp)) {
                     itemsIndexed(allRouteNos2) { index, station ->
                         MenuItem(station, R.drawable.ic_bus) {
-                            navController.navigate("map_screen")
-                            moveToStation(applicationContext, station)
+                            if (!stars.contains(station)) {
+                                stars.add(station)
+                                Toast.makeText(this@MainActivity, "${station}번 버스가 즐겨찾기로 설정되었습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                            else {
+                                stars.remove(station)
+                                Toast.makeText(this@MainActivity, "${station}번 버스의 즐겨찾기가 해제되었습니다.", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
@@ -509,7 +566,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     @Composable
-    fun SimpleScreen(title: String, isSettings: Boolean) {
+    fun SimpleScreen(title: String, isSettings: Boolean, content: String = "") {
         val context = LocalContext.current
         var isDarkMode by remember { mutableStateOf(loadDarkModePreference(context)) }
 
@@ -527,7 +584,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = title, fontSize = 24.sp)
+                    Text(text = content, fontSize = 24.sp)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -565,7 +622,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 for (station in stations) {
                     if (station.name != stationName) continue
 
-                    runOnUiThread {
                         val latLng = LatLng(station.latLng.gpslati, station.latLng.gpslong)
                         MainActivity.googleMap?.addMarker(
                             MarkerOptions()
@@ -574,8 +630,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                                 .snippet("정류장 위치")
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                         )
-                        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                    }
+                        MainActivity.googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
                 }
             } catch (e: Exception) {
                 Log.e("StationMoveError", "Failed to move to station: ${e.message}")
@@ -687,6 +742,71 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    fun applyStarRoute(gpslati: Double, gpslong: Double) {
+        var star2 = ArrayList<String>()
+
+        val postData = mapOf(
+            "serviceKey" to SERVICE_KEY,
+            "pageNo" to "1",
+            "numOfRows" to "10",
+            "_type" to "json",
+            "gpslati" to gpslati.toString(),
+            "gpslong" to gpslong.toString()
+        ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
+            .joinToString("&")
+        val json_str = fetchRouteData("https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getCrdntPrxmtSttnList",
+            postData)
+
+        val json = JSONObject(json_str)
+        val respo = json.optJSONObject("response") ?: throw Exception("Missing 'response'")
+        val body = respo.optJSONObject("body") ?: throw Exception("Missing 'body'")
+        val items = body.optJSONObject("items") ?: return
+        val bus = items.optJSONArray("item") ?: return
+
+        for (i in 0 until bus.length()) {
+            val route: JSONObject = bus.getJSONObject(i)
+            val station = route.optString("nodeid", "Unknown")
+
+            for (star in stars) {
+                var routeId = routeIds[star]
+
+                val postData2 = mapOf(
+                    "serviceKey" to SERVICE_KEY,
+                    "pageNo" to "1",
+                    "numOfRows" to "10",
+                    "_type" to "json",
+                    "nodeId" to station,
+                    "routeId" to routeId
+                ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
+                    .joinToString("&")
+                val json_str2 = fetchRouteData(
+                    "https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoSpcifyRouteBusArvlPrearngeInfoList",
+                    postData2
+                )
+
+                val json2 = JSONObject(json_str2)
+                val respo2 =
+                    json2.optJSONObject("response") ?: throw Exception("Missing 'response'")
+                val body2 = respo2.optJSONObject("body") ?: throw Exception("Missing 'body'")
+                val items2 = body2.optJSONObject("items") ?: return
+                val bus2 = items2.optJSONObject("item") ?: throw Exception("Missing 'item'")
+                val arrTime = bus2.optString("arrtime", "Unknown")
+
+                if (arrTime != "Unknown") {
+                    var toArr = arrTime.toInt() / 60
+
+                    if (toArr <= 5)
+                        star2.add("${star}번 버스가 ${toArr}분 뒤 도착 예정입니다.")
+                }
+            }
+        }
+
+        for (star in star2) {
+            Log.d("STAR", star)
+            Toast.makeText(this@MainActivity, star, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun fetchRouteData(baseUrl: String, postData: String): String {
         val url = URL("$baseUrl?$postData")
         val conn = url.openConnection() as HttpURLConnection
@@ -713,6 +833,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         return response.toString()
+    }
+
+    fun getMyLocation(): LatLng? {
+        var cur: LatLng? = null
+
+        if (ActivityCompat.checkSelfPermission(
+                MainActivity.current,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                MainActivity.current,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return null
+        }
+
+        MainActivity.fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                cur = LatLng(it.latitude, it.longitude)
+            }
+        }
+
+        return cur
     }
 
     @Preview(showBackground = true)
@@ -808,6 +951,8 @@ private var allRouteNos2 = ArrayList<String>()
 private var routeIds = ConcurrentHashMap<String, String>()
 private var gpsDatas = ConcurrentHashMap<String, GPSData>() // key: routeId
 private var stations = ArrayList<StationClass>()
+private var stations_id = ConcurrentHashMap<String, String>() //key: nodenm
+private var stars = ArrayList<String>() //routeNo
 
 private val CITY_CODE = 33010
 private val SERVICE_KEY =
