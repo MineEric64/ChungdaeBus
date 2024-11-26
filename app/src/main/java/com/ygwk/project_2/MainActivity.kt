@@ -639,17 +639,24 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         thread {
             try {
                 for (station in stations) {
-                    if (station.name != stationName) continue
+                    if (station.name != stationName) {
+                        continue
+                    }
 
-                        val latLng = LatLng(station.latLng.gpslati, station.latLng.gpslong)
-                        MainActivity.googleMap?.addMarker(
-                            MarkerOptions()
-                                .position(latLng)
-                                .title(stationName)
-                                .snippet("정류장 위치")
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                    val latLng = LatLng(station.latLng.gpslati, station.latLng.gpslong)
+                    MainActivity.googleMap?.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title(stationName)
+                            .snippet("정류장 위치")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                    )
+                    MainActivity.googleMap?.moveCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            latLng,
+                            15f
                         )
-                        MainActivity.googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("StationMoveError", "Failed to move to station: ${e.message}")
