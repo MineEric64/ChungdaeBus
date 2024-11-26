@@ -344,7 +344,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 DrawerScreen(navController)
             }
             composable("favorites") {
-                SimpleScreen(title = "즐겨찾기", isSettings = false)
+                StarScreen(navController)
             }
             composable("bus_list") {
                 BusItemScreen(navController)
@@ -533,6 +533,30 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                                 stars.remove(station)
                                 Toast.makeText(this@MainActivity, "${station}번 버스의 즐겨찾기가 해제되었습니다.", Toast.LENGTH_SHORT).show()
                             }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun StarScreen(navController: NavHostController) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("즐겨찾기") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigate("map_screen") }) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        }
+                    }
+                )
+            },
+            content = {
+                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                    itemsIndexed(stars) { index, station ->
+                        MenuItem(station, R.drawable.ic_bus) {
                         }
                     }
                 }
