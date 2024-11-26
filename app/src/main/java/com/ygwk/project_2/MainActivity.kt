@@ -193,18 +193,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     addMarkers()
                 }
 
-                delay(10000)
-            }
-        }
-        lifecycleScope.launch {
-            while (true) {
                 val latLng = getMyLocation()
 
                 if (latLng != null) {
                     applyStarRoute(latLng.latitude, latLng.longitude)
                 }
 
-                delay(60000)
+                delay(10000)
             }
         }
     }
@@ -803,7 +798,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         for (star in star2) {
             Log.d("STAR", star)
-            Toast.makeText(this@MainActivity, star, Toast.LENGTH_SHORT).show()
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, star, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
