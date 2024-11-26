@@ -353,7 +353,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 StationScreen(navController)
             }
             composable("notifications") {
-                SimpleScreen(title = "공지사항", isSettings = false, "1.1 업데이트 안내: 지도 맵 구현\n2.0 업데이트! (최신버전): 버스 실시간 위치 추적 및 UI 개선")
+                SimpleScreen(title = "공지사항", isSettings = false, "1.1 업데이트 안내: 지도 맵 구현\n\n1.1 업데이트!: 버스 실시간 위치 추적 및 UI 개선\n\n2.0 업데이트 (최신버전): 근처 버스 도착 토스트 알림 기능 추가")
             }
             composable("settings") {
                 SimpleScreen(title = "설정", isSettings = true)
@@ -391,7 +391,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("CBNU BUS") },
+                    title = { Text("충대버스: CBNU BUS") },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigate("drawer") }) {
                             Icon(Icons.Filled.Menu, contentDescription = "Menu")
@@ -764,60 +764,64 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     fun applyStarRoute(gpslati: Double, gpslong: Double) {
         var star2 = ArrayList<String>()
 
-        val postData = mapOf(
-            "serviceKey" to SERVICE_KEY,
-            "pageNo" to "1",
-            "numOfRows" to "10",
-            "_type" to "json",
-            "gpslati" to gpslati.toString(),
-            "gpslong" to gpslong.toString()
-        ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
-            .joinToString("&")
-        val json_str = fetchRouteData("https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getCrdntPrxmtSttnList",
-            postData)
+        try {
+            val postData = mapOf(
+                "serviceKey" to SERVICE_KEY,
+                "pageNo" to "1",
+                "numOfRows" to "10",
+                "_type" to "json",
+                "gpslati" to gpslati.toString(),
+                "gpslong" to gpslong.toString()
+            ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
+                .joinToString("&")
+            val json_str = fetchRouteData("https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getCrdntPrxmtSttnList",
+                postData)
 
-        val json = JSONObject(json_str)
-        val respo = json.optJSONObject("response") ?: throw Exception("Missing 'response'")
-        val body = respo.optJSONObject("body") ?: throw Exception("Missing 'body'")
-        val items = body.optJSONObject("items") ?: return
-        val bus = items.optJSONArray("item") ?: return
+            val json = JSONObject(json_str)
+            val respo = json.optJSONObject("response") ?: throw Exception("Missing 'response'")
+            val body = respo.optJSONObject("body") ?: throw Exception("Missing 'body'")
+            val items = body.optJSONObject("items") ?: return
+            val bus = items.optJSONArray("item") ?: return
 
-        for (i in 0 until bus.length()) {
-            val route: JSONObject = bus.getJSONObject(i)
-            val station = route.optString("nodeid", "Unknown")
+            for (i in 0 until bus.length()) {
+                val route: JSONObject = bus.getJSONObject(i)
+                val station = route.optString("nodeid", "Unknown")
 
-            for (star in stars) {
-                var routeId = routeIds[star]
+                for (star in stars) {
+                    var routeId = routeIds[star]
 
-                val postData2 = mapOf(
-                    "serviceKey" to SERVICE_KEY,
-                    "pageNo" to "1",
-                    "numOfRows" to "10",
-                    "_type" to "json",
-                    "nodeId" to station,
-                    "routeId" to routeId
-                ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
-                    .joinToString("&")
-                val json_str2 = fetchRouteData(
-                    "https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoSpcifyRouteBusArvlPrearngeInfoList",
-                    postData2
-                )
+                    val postData2 = mapOf(
+                        "serviceKey" to SERVICE_KEY,
+                        "pageNo" to "1",
+                        "numOfRows" to "10",
+                        "_type" to "json",
+                        "nodeId" to station,
+                        "routeId" to routeId
+                    ).map { "${URLEncoder.encode(it.key, StandardCharsets.UTF_8.name())}=${it.value}" }
+                        .joinToString("&")
+                    val json_str2 = fetchRouteData(
+                        "https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoSpcifyRouteBusArvlPrearngeInfoList",
+                        postData2
+                    )
 
-                val json2 = JSONObject(json_str2)
-                val respo2 =
-                    json2.optJSONObject("response") ?: throw Exception("Missing 'response'")
-                val body2 = respo2.optJSONObject("body") ?: throw Exception("Missing 'body'")
-                val items2 = body2.optJSONObject("items") ?: return
-                val bus2 = items2.optJSONObject("item") ?: throw Exception("Missing 'item'")
-                val arrTime = bus2.optString("arrtime", "Unknown")
+                    val json2 = JSONObject(json_str2)
+                    val respo2 =
+                        json2.optJSONObject("response") ?: throw Exception("Missing 'response'")
+                    val body2 = respo2.optJSONObject("body") ?: throw Exception("Missing 'body'")
+                    val items2 = body2.optJSONObject("items") ?: return
+                    val bus2 = items2.optJSONObject("item") ?: throw Exception("Missing 'item'")
+                    val arrTime = bus2.optString("arrtime", "Unknown")
 
-                if (arrTime != "Unknown") {
-                    var toArr = arrTime.toInt() / 60
+                    if (arrTime != "Unknown") {
+                        var toArr = arrTime.toInt() / 60
 
-                    if (toArr <= 5)
-                        star2.add("${star}번 버스가 ${toArr}분 뒤 도착 예정입니다.")
+                        if (toArr <= 5)
+                            star2.add("${star}번 버스가 ${toArr}분 뒤 도착 예정입니다.")
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e("Route23STAR", "Failed to process: ${e.message}")
         }
 
         for (star in star2) {

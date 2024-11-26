@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Project - 2</string>
+    <string name="app_name">충대버스</string>
     <string name="map_style">[
   {
     "elementType": "labels",
