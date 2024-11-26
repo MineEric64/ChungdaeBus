@@ -201,12 +201,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 val latLng = getMyLocation()
 
                 if (latLng != null) {
-                    applyStarRoute()
+                    applyStarRoute(latLng.latitude, latLng.longitude)
                 }
 
                 delay(60000)
             }
-        }
         }
     }
 
@@ -309,6 +308,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     .title(station.name)
                     .snippet("정류장")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+            )
         }
     }
 
