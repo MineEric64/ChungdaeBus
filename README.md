@@ -6,7 +6,7 @@
 RestTrackers 팀 제작
 
 ## 기능
-![kaka2](https://github.com/MineEric64/ChungdaeBus/blob/main/kaka.png?raw=true)
+![kaka2](https://github.com/MineEric64/ChungdaeBus/blob/main/kaka2.png?raw=true)
 - 버스 실시간 위치 표시
 - 버스 및 정류장 목록
 - 즐겨찾기한 버스가 사용자의 위치에 근접한 경우 알림
@@ -24,7 +24,7 @@ RestTrackers 팀 제작
 
 설치 시 이런 문구가 나오면, '무시하고 설치' 버튼을 눌러주세요.
 
-![setup2](https://github.com/MineEric64/ChungdaeBus/blob/main/kaka2.png?raw=true)
+![setup2](https://github.com/MineEric64/ChungdaeBus/blob/main/kaka.png?raw=true)
 
 설치 시 이런 문구가 나오면, '앱 검사' 버튼을 눌러주세요.
 
